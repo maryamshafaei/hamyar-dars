@@ -77,6 +77,43 @@ app.get('/api/test', async (req, res) => {
   res.json(out);
 });
 
+function pcmToWav(pcm, sampleRate = 24000) {
+  const h = Buffer.alloc(44);
+  h.write('RIFF', 0);
+  h.writeUInt32LE(36 + pcm.length, 4);
+  h.write('WAVE', 8);
+  h.write('fmt ', 12);
+  h.writeUInt32LE(16, 16);
+  h.writeUInt16LE(1, 20);
+  h.writeUInt16LE(1, 22);
+  h.writeUInt32LE(sampleRate, 24);
+  h.writeUInt32LE(sampleRate * 2, 28);
+  h.writeUInt16LE(2, 32);
+  h.writeUInt16LE(16, 34);
+  h.write('data', 36);
+  h.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([h, pcm]);
+}
+
+app.get('/api/tts-test', async (req, res) => {
+  try {
+    const r = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-tts-preview',
+      contents: [{ parts: [{ text: 'سلام دانش‌آموز عزیز. امروز می‌خواهیم درس را با هم مرور کنیم.' }] }],
+      config: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
+      }
+    });
+    const data = r.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!data) return res.status(500).json({ error: 'no audio returned' });
+    res.set('Content-Type', 'audio/wav');
+    res.send(pcmToWav(Buffer.from(data, 'base64')));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
