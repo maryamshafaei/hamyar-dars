@@ -12,6 +12,7 @@ if (!process.env.GEMINI_API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL = 'gemini-flash-lite-latest';
+const TTS_MODEL = 'gemini-3.1-flash-tts-preview';
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
@@ -54,28 +55,6 @@ app.post('/api/ask', async (req, res) => {
     res.status(500).json({ error: err.message || 'خطا در ارتباط با سرور' });
   }
 });
-app.get('/api/test', async (req, res) => {
-  const out = { model: MODEL, models: [], test: null };
-  try {
-    const pager = await ai.models.list();
-    for await (const m of pager) {
-      out.models.push(m.name);
-    }
-  } catch (e) {
-    out.listError = e.message;
-  }
-  try {
-    const t0 = Date.now();
-    const r = await ai.models.generateContent({
-      model: MODEL,
-      contents: 'Say hi in one word'
-    });
-    out.test = { ok: true, text: r.text, ms: Date.now() - t0 };
-  } catch (e) {
-    out.test = { ok: false, error: e.message };
-  }
-  res.json(out);
-});
 
 function pcmToWav(pcm, sampleRate = 24000) {
   const h = Buffer.alloc(44);
@@ -95,22 +74,31 @@ function pcmToWav(pcm, sampleRate = 24000) {
   return Buffer.concat([h, pcm]);
 }
 
-app.get('/api/tts-test', async (req, res) => {
+app.post('/api/tts', async (req, res) => {
   try {
+    const text = String((req.body && req.body.text) || '').trim();
+    if (!text) return res.status(400).json({ error: 'empty text' });
+    if (text.length > 3000) return res.status(400).json({ error: 'text too long' });
+
     const r = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-tts-preview',
-      contents: [{ parts: [{ text: 'سلام دانش‌آموز عزیز. امروز می‌خواهیم درس را با هم مرور کنیم.' }] }],
+      model: TTS_MODEL,
+      contents: [{ parts: [{ text }] }],
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
       }
     });
+
     const data = r.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!data) return res.status(500).json({ error: 'no audio returned' });
+
     res.set('Content-Type', 'audio/wav');
     res.send(pcmToWav(Buffer.from(data, 'base64')));
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    console.error('TTS Error:', err);
+    const msg = String((err && err.message) || '');
+    const quota = (err && err.status === 429) || msg.includes('RESOURCE_EXHAUSTED');
+    res.status(quota ? 429 : 500).json({ error: msg || 'tts error' });
   }
 });
 
