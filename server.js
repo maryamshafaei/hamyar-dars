@@ -54,6 +54,28 @@ app.post('/api/ask', async (req, res) => {
     res.status(500).json({ error: err.message || 'خطا در ارتباط با سرور' });
   }
 });
+app.get('/api/test', async (req, res) => {
+  const out = { model: MODEL, models: [], test: null };
+  try {
+    const pager = await ai.models.list();
+    for await (const m of pager) {
+      out.models.push(m.name);
+    }
+  } catch (e) {
+    out.listError = e.message;
+  }
+  try {
+    const t0 = Date.now();
+    const r = await ai.models.generateContent({
+      model: MODEL,
+      contents: 'Say hi in one word'
+    });
+    out.test = { ok: true, text: r.text, ms: Date.now() - t0 };
+  } catch (e) {
+    out.test = { ok: false, error: e.message };
+  }
+  res.json(out);
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
