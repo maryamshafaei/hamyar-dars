@@ -14,6 +14,11 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL = 'gemini-flash-lite-latest';
 const TTS_MODEL = 'gemini-3.1-flash-tts-preview';
 
+function isQuota(err) {
+  const msg = String((err && err.message) || '');
+  return (err && err.status === 429) || msg.includes('RESOURCE_EXHAUSTED');
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
@@ -35,11 +40,24 @@ app.post('/api/ask', async (req, res) => {
       config.tools = [{ googleSearch: {} }];
     }
 
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: [{ role: 'user', parts }],
-      config
-    });
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: MODEL,
+        contents: [{ role: 'user', parts }],
+        config
+      });
+    } catch (e) {
+      if (!search) throw e;
+      delete config.tools;
+      parts[parts.length - 1].text +=
+        '\n\nNote: live web search is unavailable right now. Answer from your own knowledge, mention this limitation in one short sentence, and do not invent sources or links.';
+      response = await ai.models.generateContent({
+        model: MODEL,
+        contents: [{ role: 'user', parts }],
+        config
+      });
+    }
 
     const text = response.text || '';
 
@@ -52,7 +70,7 @@ app.post('/api/ask', async (req, res) => {
     res.json({ text, sources });
   } catch (err) {
     console.error('API Error:', err);
-    res.status(500).json({ error: err.message || 'خطا در ارتباط با سرور' });
+    res.status(isQuota(err) ? 429 : 500).json({ error: (err && err.message) || 'server error' });
   }
 });
 
@@ -96,9 +114,7 @@ app.post('/api/tts', async (req, res) => {
     res.send(pcmToWav(Buffer.from(data, 'base64')));
   } catch (err) {
     console.error('TTS Error:', err);
-    const msg = String((err && err.message) || '');
-    const quota = (err && err.status === 429) || msg.includes('RESOURCE_EXHAUSTED');
-    res.status(quota ? 429 : 500).json({ error: msg || 'tts error' });
+    res.status(isQuota(err) ? 429 : 500).json({ error: (err && err.message) || 'tts error' });
   }
 });
 
