@@ -140,7 +140,7 @@ amode:'Scope',page:'One page',chapter:'A chapter (page range)',problem:'One prob
 ago:'Create and play lesson',apause:'Pause / resume',astop:'Stop',foot:'AI answers may contain mistakes; check important points against the book.',
 busy:'Working...',check:'Check answer',needFile:'Choose a PDF file first.',badRange:'The page range is not valid.',max15:'At most 15 pages per request.',
 badJson:'Invalid response; please try again.',noResp:'No response received; please try again.',quota:'The free usage limit is reached. Wait a few minutes and try again.',apiErr:'Connection error with the service.',
-noWrong:'No wrong answers recorded yet.',answerFirst:'Answer first.',ok:'Correct.',no:'Incorrect.',ans:'Answer: ',sources:'Sources:',
+noWrong:'No wrong answers recorded yet.',answerFirst:'Answer first.',ok:'Correct.',no:'Incorrect.',ans:'Answer: ',sources:'Sources:',ttsBusy:'Preparing the audio...',
 nospeech:'This browser does not support audio; only the lesson text is shown. Open the app in Chrome or Safari to listen.',novoice:'No voice for this language was found on this device; pronunciation may be poor.'},
 fa:{title:'همیار درس',sub:'کتاب درسی را بارگذاری کنید، صفحه را انتخاب کنید و سوال، تمرین و تدریس صوتی بگیرید.',
 fileL:'فایل PDF کتاب',choose:'انتخاب فایل',pdf:'ذخیره به‌صورت PDF',pdfKey:'پاسخنامه',pdfNone:'هنوز چیزی برای خروجی گرفتن نیست.',from:'از صفحه',to:'تا صفحه',nofile:'هنوز فایلی انتخاب نشده است.',loading:'در حال بارگذاری...',loaded:'کتاب بارگذاری شد: {n} صفحه',readfail:'خواندن فایل ممکن نشد: ',
@@ -152,10 +152,10 @@ amode:'محدوده',page:'یک صفحه',chapter:'یک فصل (بازه صفح�
 ago:'ساخت و پخش تدریس',apause:'مکث / ادامه',astop:'توقف',foot:'پاسخ‌های هوش مصنوعی ممکن است خطا داشته باشد؛ مطالب مهم را با کتاب تطبیق دهید.',
 busy:'در حال انجام...',check:'بررسی پاسخ',needFile:'ابتدا فایل PDF را انتخاب کنید.',badRange:'بازه‌ی صفحه‌ها معتبر نیست.',max15:'حداکثر ۱۵ صفحه در هر درخواست.',
 badJson:'پاسخ نامعتبر بود؛ دوباره تلاش کنید.',noResp:'پاسخی دریافت نشد؛ دوباره تلاش کنید.',quota:'سقف استفاده‌ی رایگان پر شده است. چند دقیقه صبر کنید و دوباره تلاش کنید.',apiErr:'خطا در ارتباط با سرویس',
-noWrong:'هنوز پاسخ غلطی ثبت نشده است.',answerFirst:'ابتدا پاسخ بدهید.',ok:'درست.',no:'نادرست.',ans:'پاسخ: ',sources:'منابع:',
+noWrong:'هنوز پاسخ غلطی ثبت نشده است.',answerFirst:'ابتدا پاسخ بدهید.',ok:'درست.',no:'نادرست.',ans:'پاسخ: ',sources:'منابع:',ttsBusy:'در حال ساخت صدا...',
 nospeech:'این مرورگر پخش صدا را پشتیبانی نمی‌کند؛ فقط متن تدریس نمایش داده می‌شود. برای شنیدن، برنامه را در کروم یا سافاری باز کنید.',novoice:'صدای فارسی روی این دستگاه پیدا نشد؛ ممکن است تلفظ ضعیف باشد.'},
 tr:{title:'Ders Yardımcısı',sub:'Ders kitabını yükleyin, sayfaları seçin; soru, alıştırma ve sesli ders alın.',
-fileL:'Ders kitabını PDF dosyası',choose:'Dosya seç',pdf:'PDF olarak kaydet',pdfKey:'Cevap anahtarı',pdfNone:'Henüz dışa aktarılacak bir şey yok.',from:'Başlangıç sayfası',to:'Bitiş sayfası',nofile:'Henüz dosya seçilmedi.',loading:'Yükleniyor...',loaded:'Kitap yüklendi: {n} sayfa',readfail:'Dosya okunamadı: ',
+fileL:'Ders kitabı PDF dosyası',choose:'Dosya seç',pdf:'PDF olarak kaydet',pdfKey:'Cevap anahtarı',pdfNone:'Henüz dışa aktarılacak bir şey yok.',from:'Başlangıç sayfası',to:'Bitiş sayfası',nofile:'Henüz dosya seçilmedi.',loading:'Yükleniyor...',loaded:'Kitap yüklendi: {n} sayfa',readfail:'Dosya okunamadı: ',
 tq:'Sorular',tw:'Web araması',tp:'Daha fazla alıştırma',ta:'Sesli ders',
 qtype:'Soru türü',mcq:'Çoktan seçmeli',essay:'Klasik (açık uçlu)',blank:'Boşluk doldurma',count:'Sayı',level:'Seviye',easy:'Kolay',medium:'Orta',hard:'Zor',
 qgo:'Soru oluştur',wtopic:'Arama konusu (isteğe bağlı; boşsa sayfa içeriği kullanılır)',wgo:'Webde ara',
@@ -319,8 +319,14 @@ $('pweak').onclick=e=>run(e.target,()=>{
   return genQuiz($('ptype').value,$('pn').value,'The student answered these questions wrongly: '+S.wrong.slice(-8).join(' | ')+'. Create new, similar questions that address these weaknesses.',$('pout'));
 });
 
-let chunks=[],idx=0;
+let chunks=[],idx=0,aud=null,playId=0;
+function stopAll(){
+  playId++;idx=chunks.length;
+  if(window.speechSynthesis)speechSynthesis.cancel();
+  if(aud){aud.pause();aud=null}
+}
 function voice(){
+  if(S.lang==='fa'){$('avoice').textContent='';return null}
   if(!window.speechSynthesis){$('avoice').textContent=t('nospeech');return null}
   const v=speechSynthesis.getVoices().find(x=>x.lang.toLowerCase().startsWith(S.lang));
   $('avoice').textContent=v?'':t('novoice');return v;
@@ -331,17 +337,61 @@ function speak(){
   u.lang=VC[S.lang];u.rate=+$('arate').value;const v=voice();if(v)u.voice=v;
   u.onend=speak;speechSynthesis.speak(u);
 }
+function splitText(s,max){
+  const sents=s.match(/[^.!؟?\n]+[.!؟?]?\s*/g)||[s];
+  const out=[];let cur='';
+  for(const x of sents){
+    if((cur+x).length>max&&cur){out.push(cur);cur=x}else cur+=x;
+  }
+  if(cur.trim())out.push(cur);
+  return out;
+}
+async function fetchTts(text){
+  const r=await fetch('/api/tts',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})});
+  if(!r.ok){
+    let m='';try{m=(await r.json()).error}catch(e){}
+    throw new Error(r.status===429?t('quota'):t('apiErr')+(m?' ('+String(m).slice(0,120)+')':''));
+  }
+  return URL.createObjectURL(await r.blob());
+}
+async function playPersian(script,myId){
+  const parts=splitText(script,1800);
+  let next=fetchTts(parts[0]);next.catch(()=>{});
+  for(let i=0;i<parts.length;i++){
+    $('avoice').textContent=t('ttsBusy');
+    const url=await next;
+    if(myId!==playId)return;
+    if(i+1<parts.length){next=fetchTts(parts[i+1]);next.catch(()=>{})}
+    $('avoice').textContent='';
+    await new Promise((res,rej)=>{
+      aud=new Audio(url);aud.playbackRate=+$('arate').value||1;
+      aud.onended=res;aud.onerror=()=>rej(new Error(t('apiErr')));
+      aud.play().catch(rej);
+    });
+    URL.revokeObjectURL(url);
+    if(myId!==playId)return;
+  }
+}
 $('ago').onclick=e=>run(e.target,async()=>{
-  if(window.speechSynthesis)speechSynthesis.cancel();
+  stopAll();
+  const myId=playId;
   const {text,imgs}=await pages();
   const mode=$('amode').value,topic=$('atopic').value.trim();
   const goal={page:'this page',chapter:'this chapter',problem:'this problem: '+topic}[mode];
   const script=await ask(`Lesson content:\n${text||'(in the attached images)'}\n\nTeach ${goal} step by step in simple words, like a patient teacher. The text will be read aloud: no bullet points, no asterisks or symbols, short sentences, and one example. End with two review questions.`,{imgs});
   $('aout').textContent=script;
+  if(S.lang==='fa'){
+    playPersian(script,myId).catch(err=>{if(myId===playId)$('avoice').textContent=err.message});
+    return;
+  }
   chunks=script.match(/[^.!؟?\n]+[.!؟?]?[^\n]*|^[^\n]+/g)||[script];idx=0;speak();
 });
-$('apause').onclick=()=>{if(!window.speechSynthesis)return;speechSynthesis.paused?speechSynthesis.resume():speechSynthesis.pause()};
-$('astop').onclick=()=>{idx=chunks.length;if(window.speechSynthesis)speechSynthesis.cancel()};
+$('apause').onclick=()=>{
+  if(aud){aud.paused?aud.play():aud.pause();return}
+  if(!window.speechSynthesis)return;
+  speechSynthesis.paused?speechSynthesis.resume():speechSynthesis.pause();
+};
+$('astop').onclick=()=>{stopAll();$('avoice').textContent=''};
 if(window.speechSynthesis)speechSynthesis.onvoiceschanged=voice;
 
 function exportPdf(id){
@@ -374,4 +424,4 @@ window.onafterprint=()=>{document.title=t('title')};
 document.querySelectorAll('[data-pdf]').forEach(b=>b.onclick=()=>exportPdf(b.dataset.pdf));
 </script>
 </body>
-      </html>
+</html>
