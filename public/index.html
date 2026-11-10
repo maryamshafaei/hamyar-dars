@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>همیار درس</title>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5b3a8c">
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -438,6 +440,7 @@ function exportPdf(id,withKey){
 }
 window.onafterprint=()=>{document.title=t('title')};
 document.querySelectorAll('[data-pdf]').forEach(b=>b.onclick=()=>exportPdf(b.dataset.pdf,b.dataset.key!=='0'));
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}
 </script>
 </body>
 </html>
