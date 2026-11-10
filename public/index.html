@@ -57,6 +57,7 @@ nav button.on{color:#fff;border-bottom:3px solid #fff}
     <div><label data-i="from"></label><input id="p1" type="number" min="1" value="1"></div>
     <div><label data-i="to"></label><input id="p2" type="number" min="1" value="1"></div>
   </div>
+  <div class="mut" data-i="pnote"></div>
   <div id="info" class="mut"></div>
 </div>
 
@@ -76,7 +77,8 @@ nav button.on{color:#fff;border-bottom:3px solid #fff}
   </div>
   <button id="qgo" data-i="qgo"></button>
   <div id="qout"></div>
-  <button class="alt" data-pdf="qout" data-i="pdf"></button>
+  <button class="alt" data-pdf="qout" data-key="0" data-i="pdfNo"></button>
+  <button class="alt" data-pdf="qout" data-key="1" data-i="pdfWith"></button>
 </section>
 
 <section class="pane card" id="w">
@@ -98,7 +100,8 @@ nav button.on{color:#fff;border-bottom:3px solid #fff}
   <button id="pgo" data-i="pgo"></button>
   <button id="pweak" class="alt" data-i="pweak"></button>
   <div id="pout"></div>
-  <button class="alt" data-pdf="pout" data-i="pdf"></button>
+  <button class="alt" data-pdf="pout" data-key="0" data-i="pdfNo"></button>
+  <button class="alt" data-pdf="pout" data-key="1" data-i="pdfWith"></button>
 </section>
 
 <section class="pane card" id="a">
@@ -106,6 +109,7 @@ nav button.on{color:#fff;border-bottom:3px solid #fff}
     <div><label data-i="amode"></label>
       <select id="amode"><option value="page" data-i="page"></option><option value="chapter" data-i="chapter"></option><option value="problem" data-i="problem"></option></select></div>
     <div><label data-i="rate"></label><input id="arate" type="number" min="0.5" max="1.5" step="0.1" value="0.9"></div>
+    <div><label data-i="dur"></label><select id="adur"><option value="2" selected data-i="d2"></option><option value="4" data-i="d4"></option><option value="6" data-i="d6"></option></select></div>
   </div>
   <label data-i="atopic"></label>
   <input id="atopic">
@@ -131,52 +135,60 @@ const LV={easy:'easy',medium:'medium',hard:'hard'};
 
 const T={
 en:{title:'Study Helper',sub:'Upload a textbook, choose the pages, and get questions, practice and audio lessons.',
-fileL:'Textbook PDF',choose:'Choose file',pdf:'Save as PDF',pdfKey:'Answer key',pdfNone:'Nothing to export yet.',from:'From page',to:'To page',nofile:'No file selected yet.',loading:'Loading...',loaded:'Book loaded: {n} pages',readfail:'Could not read the file: ',
-tq:'Questions',tw:'Web search',tp:'More practice',ta:'Audio lesson',
+fileL:'Textbook PDF',choose:'Choose file',pdf:'Save as PDF',pdfWith:'Save as PDF (with answer key)',pdfNo:'Save as PDF (without answer key)',pdfKey:'Answer key',pdfNone:'Nothing to export yet.',from:'From page',to:'To page',
+pnote:'Note: the page number inside the file and the page number printed in the book are different. Please enter the page number inside the file.',
+nofile:'No file selected yet.',loading:'Loading...',loaded:'Book loaded: {n} pages',readfail:'Could not read the file: ',
+tq:'Questions',tw:'Summary',tp:'More practice',ta:'Audio lesson',
 qtype:'Question type',mcq:'Multiple choice',essay:'Essay',blank:'Fill in the blank',count:'Number',level:'Level',easy:'Easy',medium:'Medium',hard:'Hard',
-qgo:'Create questions',wtopic:'Search topic (optional; the page content is used if empty)',wgo:'Search the web',
+qgo:'Create questions',wtopic:'Topic to summarize (optional; the page content is used if empty)',wgo:'Summarize',
 ptopic:'Specific problem or topic (optional)',pph:'e.g. dividing fractions',pgo:'Create reinforcement practice',pweak:'Practice from my wrong answers',
-amode:'Scope',page:'One page',chapter:'A chapter (page range)',problem:'One problem',rate:'Speech speed',atopic:'Problem or topic (for the problem mode)',
+amode:'Scope',page:'One page',chapter:'A chapter (page range)',problem:'One problem',rate:'Speech speed',dur:'Lesson length',d2:'About 2 minutes',d4:'About 4 minutes',d6:'About 6 minutes',atopic:'Problem or topic (for the problem mode)',
 ago:'Create and play lesson',apause:'Pause / resume',astop:'Stop',foot:'AI answers may contain mistakes; check important points against the book.',
 busy:'Working...',check:'Check answer',needFile:'Choose a PDF file first.',badRange:'The page range is not valid.',max15:'At most 15 pages per request.',
 badJson:'Invalid response; please try again.',noResp:'No response received; please try again.',quota:'The free usage limit is reached. Wait a few minutes and try again.',apiErr:'Connection error with the service.',
 noWrong:'No wrong answers recorded yet.',answerFirst:'Answer first.',ok:'Correct.',no:'Incorrect.',ans:'Answer: ',sources:'Sources:',ttsBusy:'Preparing the audio...',
 nospeech:'This browser does not support audio; only the lesson text is shown. Open the app in Chrome or Safari to listen.',novoice:'No voice for this language was found on this device; pronunciation may be poor.'},
 fa:{title:'همیار درس',sub:'کتاب درسی را بارگذاری کنید، صفحه را انتخاب کنید و سوال، تمرین و تدریس صوتی بگیرید.',
-fileL:'فایل PDF کتاب',choose:'انتخاب فایل',pdf:'ذخیره به‌صورت PDF',pdfKey:'پاسخنامه',pdfNone:'هنوز چیزی برای خروجی گرفتن نیست.',from:'از صفحه',to:'تا صفحه',nofile:'هنوز فایلی انتخاب نشده است.',loading:'در حال بارگذاری...',loaded:'کتاب بارگذاری شد: {n} صفحه',readfail:'خواندن فایل ممکن نشد: ',
-tq:'سوال',tw:'جستجوی وب',tp:'تمرین بیشتر',ta:'تدریس صوتی',
+fileL:'فایل PDF کتاب',choose:'انتخاب فایل',pdf:'ذخیره به‌صورت PDF',pdfWith:'ذخیره PDF (با پاسخنامه)',pdfNo:'ذخیره PDF (بدون پاسخنامه)',pdfKey:'پاسخنامه',pdfNone:'هنوز چیزی برای خروجی گرفتن نیست.',from:'از صفحه',to:'تا صفحه',
+pnote:'توجه کنید که شماره‌ی صفحه در داخل فایل و در داخل کتاب با هم تفاوت دارند. لطفاً شماره‌ی صفحه در داخل فایل را وارد کنید.',
+nofile:'هنوز فایلی انتخاب نشده است.',loading:'در حال بارگذاری...',loaded:'کتاب بارگذاری شد: {n} صفحه',readfail:'خواندن فایل ممکن نشد: ',
+tq:'سوال',tw:'خلاصه',tp:'تمرین بیشتر',ta:'تدریس صوتی',
 qtype:'نوع سوال',mcq:'چهارگزینه‌ای',essay:'تشریحی',blank:'جای خالی',count:'تعداد',level:'سطح',easy:'ساده',medium:'متوسط',hard:'دشوار',
-qgo:'ساخت سوال',wtopic:'موضوع جستجو (اختیاری؛ اگر خالی باشد از محتوای صفحه استفاده می‌شود)',wgo:'جستجو در وب',
+qgo:'ساخت سوال',wtopic:'موضوع خلاصه (اختیاری؛ اگر خالی باشد از محتوای صفحه استفاده می‌شود)',wgo:'خلاصه‌سازی',
 ptopic:'مسئله یا مبحث مشخص (اختیاری)',pph:'مثلاً: تقسیم کسرها',pgo:'ساخت تمرین تثبیتی',pweak:'تمرین بر اساس پاسخ‌های غلط من',
-amode:'محدوده',page:'یک صفحه',chapter:'یک فصل (بازه صفحه‌ها)',problem:'یک مسئله',rate:'سرعت صدا',atopic:'مسئله یا موضوع (برای حالت مسئله)',
+amode:'محدوده',page:'یک صفحه',chapter:'یک فصل (بازه صفحه‌ها)',problem:'یک مسئله',rate:'سرعت صدا',dur:'مدت تدریس',d2:'حدود ۲ دقیقه',d4:'حدود ۴ دقیقه',d6:'حدود ۶ دقیقه',atopic:'مسئله یا موضوع (برای حالت مسئله)',
 ago:'ساخت و پخش تدریس',apause:'مکث / ادامه',astop:'توقف',foot:'پاسخ‌های هوش مصنوعی ممکن است خطا داشته باشد؛ مطالب مهم را با کتاب تطبیق دهید.',
 busy:'در حال انجام...',check:'بررسی پاسخ',needFile:'ابتدا فایل PDF را انتخاب کنید.',badRange:'بازه‌ی صفحه‌ها معتبر نیست.',max15:'حداکثر ۱۵ صفحه در هر درخواست.',
 badJson:'پاسخ نامعتبر بود؛ دوباره تلاش کنید.',noResp:'پاسخی دریافت نشد؛ دوباره تلاش کنید.',quota:'سقف استفاده‌ی رایگان پر شده است. چند دقیقه صبر کنید و دوباره تلاش کنید.',apiErr:'خطا در ارتباط با سرویس',
 noWrong:'هنوز پاسخ غلطی ثبت نشده است.',answerFirst:'ابتدا پاسخ بدهید.',ok:'درست.',no:'نادرست.',ans:'پاسخ: ',sources:'منابع:',ttsBusy:'در حال ساخت صدا...',
 nospeech:'این مرورگر پخش صدا را پشتیبانی نمی‌کند؛ فقط متن تدریس نمایش داده می‌شود. برای شنیدن، برنامه را در کروم یا سافاری باز کنید.',novoice:'صدای فارسی روی این دستگاه پیدا نشد؛ ممکن است تلفظ ضعیف باشد.'},
 tr:{title:'Ders Yardımcısı',sub:'Ders kitabını yükleyin, sayfaları seçin; soru, alıştırma ve sesli ders alın.',
-fileL:'Ders kitabı PDF dosyası',choose:'Dosya seç',pdf:'PDF olarak kaydet',pdfKey:'Cevap anahtarı',pdfNone:'Henüz dışa aktarılacak bir şey yok.',from:'Başlangıç sayfası',to:'Bitiş sayfası',nofile:'Henüz dosya seçilmedi.',loading:'Yükleniyor...',loaded:'Kitap yüklendi: {n} sayfa',readfail:'Dosya okunamadı: ',
-tq:'Sorular',tw:'Web araması',tp:'Daha fazla alıştırma',ta:'Sesli ders',
+fileL:'Ders kitabı PDF dosyası',choose:'Dosya seç',pdf:'PDF olarak kaydet',pdfWith:'PDF olarak kaydet (cevap anahtarlı)',pdfNo:'PDF olarak kaydet (cevap anahtarsız)',pdfKey:'Cevap anahtarı',pdfNone:'Henüz dışa aktarılacak bir şey yok.',from:'Başlangıç sayfası',to:'Bitiş sayfası',
+pnote:'Dikkat: Dosyadaki sayfa numarası ile kitaptaki sayfa numarası farklıdır. Lütfen dosyadaki sayfa numarasını girin.',
+nofile:'Henüz dosya seçilmedi.',loading:'Yükleniyor...',loaded:'Kitap yüklendi: {n} sayfa',readfail:'Dosya okunamadı: ',
+tq:'Sorular',tw:'Özet',tp:'Daha fazla alıştırma',ta:'Sesli ders',
 qtype:'Soru türü',mcq:'Çoktan seçmeli',essay:'Klasik (açık uçlu)',blank:'Boşluk doldurma',count:'Sayı',level:'Seviye',easy:'Kolay',medium:'Orta',hard:'Zor',
-qgo:'Soru oluştur',wtopic:'Arama konusu (isteğe bağlı; boşsa sayfa içeriği kullanılır)',wgo:'Webde ara',
+qgo:'Soru oluştur',wtopic:'Özetlenecek konu (isteğe bağlı; boşsa sayfa içeriği kullanılır)',wgo:'Özetle',
 ptopic:'Belirli bir problem veya konu (isteğe bağlı)',pph:'örn. kesirlerde bölme',pgo:'Pekiştirme alıştırması oluştur',pweak:'Yanlış cevaplarıma göre alıştırma',
-amode:'Kapsam',page:'Bir sayfa',chapter:'Bir bölüm (sayfa aralığı)',problem:'Bir problem',rate:'Konuşma hızı',atopic:'Problem veya konu (problem modu için)',
+amode:'Kapsam',page:'Bir sayfa',chapter:'Bir bölüm (sayfa aralığı)',problem:'Bir problem',rate:'Konuşma hızı',dur:'Ders süresi',d2:'Yaklaşık 2 dakika',d4:'Yaklaşık 4 dakika',d6:'Yaklaşık 6 dakika',atopic:'Problem veya konu (problem modu için)',
 ago:'Dersi oluştur ve oynat',apause:'Duraklat / devam',astop:'Durdur',foot:'Yapay zeka cevapları hata içerebilir; önemli bilgileri kitapla karşılaştırın.',
 busy:'İşleniyor...',check:'Cevabı kontrol et',needFile:'Önce bir PDF dosyası seçin.',badRange:'Sayfa aralığı geçerli değil.',max15:'Her istekte en fazla 15 sayfa.',
 badJson:'Geçersiz yanıt; lütfen tekrar deneyin.',noResp:'Yanıt alınamadı; lütfen tekrar deneyin.',quota:'Ücretsiz kullanım sınırına ulaşıldı. Birkaç dakika bekleyip tekrar deneyin.',apiErr:'Hizmetle bağlantı hatası.',
-noWrong:'Henüz kayıtlı yanlış cevap yok.',answerFirst:'Önce cevap verin.',ok:'Doğru.',no:'Yanlış.',ans:'Cevap: ',sources:'Kaynaklar:',
+noWrong:'Henüz kayıtlı yanlış cevap yok.',answerFirst:'Önce cevap verin.',ok:'Doğru.',no:'Yanlış.',ans:'Cevap: ',sources:'Kaynaklar:',ttsBusy:'Ses hazırlanıyor...',
 nospeech:'Bu tarayıcı sesi desteklemiyor; yalnızca ders metni gösterilir. Dinlemek için uygulamayı Chrome veya Safari’de açın.',novoice:'Bu cihazda bu dil için ses bulunamadı; telaffuz zayıf olabilir.'},
 es:{title:'Ayudante de Estudio',sub:'Sube un libro de texto, elige las páginas y obtén preguntas, ejercicios y clases en audio.',
-fileL:'PDF del libro de texto',choose:'Elegir archivo',pdf:'Guardar como PDF',pdfKey:'Clave de respuestas',pdfNone:'Aún no hay nada que exportar.',from:'Desde la página',to:'Hasta la página',nofile:'Aún no se ha elegido ningún archivo.',loading:'Cargando...',loaded:'Libro cargado: {n} páginas',readfail:'No se pudo leer el archivo: ',
-tq:'Preguntas',tw:'Búsqueda web',tp:'Más práctica',ta:'Clase en audio',
+fileL:'PDF del libro de texto',choose:'Elegir archivo',pdf:'Guardar como PDF',pdfWith:'Guardar como PDF (con respuestas)',pdfNo:'Guardar como PDF (sin respuestas)',pdfKey:'Clave de respuestas',pdfNone:'Aún no hay nada que exportar.',from:'Desde la página',to:'Hasta la página',
+pnote:'Atención: el número de página dentro del archivo y el del libro son diferentes. Por favor, introduce el número de página dentro del archivo.',
+nofile:'Aún no se ha elegido ningún archivo.',loading:'Cargando...',loaded:'Libro cargado: {n} páginas',readfail:'No se pudo leer el archivo: ',
+tq:'Preguntas',tw:'Resumen',tp:'Más práctica',ta:'Clase en audio',
 qtype:'Tipo de pregunta',mcq:'Opción múltiple',essay:'Desarrollo',blank:'Completar el espacio',count:'Cantidad',level:'Nivel',easy:'Fácil',medium:'Medio',hard:'Difícil',
-qgo:'Crear preguntas',wtopic:'Tema de búsqueda (opcional; si está vacío se usa el contenido de la página)',wgo:'Buscar en la web',
+qgo:'Crear preguntas',wtopic:'Tema a resumir (opcional; si está vacío se usa el contenido de la página)',wgo:'Resumir',
 ptopic:'Problema o tema concreto (opcional)',pph:'p. ej. división de fracciones',pgo:'Crear práctica de refuerzo',pweak:'Práctica según mis respuestas incorrectas',
-amode:'Alcance',page:'Una página',chapter:'Un capítulo (rango de páginas)',problem:'Un problema',rate:'Velocidad de voz',atopic:'Problema o tema (para el modo problema)',
+amode:'Alcance',page:'Una página',chapter:'Un capítulo (rango de páginas)',problem:'Un problema',rate:'Velocidad de voz',dur:'Duración de la clase',d2:'Aprox. 2 minutos',d4:'Aprox. 4 minutos',d6:'Aprox. 6 minutos',atopic:'Problema o tema (para el modo problema)',
 ago:'Crear y reproducir la clase',apause:'Pausa / continuar',astop:'Detener',foot:'Las respuestas de la IA pueden contener errores; contrasta lo importante con el libro.',
 busy:'Procesando...',check:'Comprobar respuesta',needFile:'Primero elige un archivo PDF.',badRange:'El rango de páginas no es válido.',max15:'Máximo 15 páginas por solicitud.',
 badJson:'Respuesta no válida; inténtalo de nuevo.',noResp:'No se recibió respuesta; inténtalo de nuevo.',quota:'Se alcanzó el límite de uso gratuito. Espera unos minutos e inténtalo de nuevo.',apiErr:'Error de conexión con el servicio.',
-noWrong:'Aún no hay respuestas incorrectas registradas.',answerFirst:'Responde primero.',ok:'Correcto.',no:'Incorrecto.',ans:'Respuesta: ',sources:'Fuentes:',
+noWrong:'Aún no hay respuestas incorrectas registradas.',answerFirst:'Responde primero.',ok:'Correcto.',no:'Incorrecto.',ans:'Respuesta: ',sources:'Fuentes:',ttsBusy:'Preparando el audio...',
 nospeech:'Este navegador no admite audio; solo se muestra el texto de la clase. Abre la app en Chrome o Safari para escucharla.',novoice:'No se encontró una voz para este idioma en el dispositivo; la pronunciación puede ser deficiente.'}
 };
 const t=(k,n)=>(T[S.lang][k]||T.en[k]||k).replace('{n}',n);
@@ -308,9 +320,10 @@ function render(items,type,box){
 $('qgo').onclick=e=>run(e.target,()=>genQuiz($('qtype').value,$('qn').value,`Difficulty level: ${LV[$('qlv').value]}.`,$('qout')));
 
 $('wgo').onclick=e=>run(e.target,async()=>{
-  const {text}=await pages();
-  const topic=$('wtopic').value.trim()||('the main topic of this text: '+text.slice(0,600));
-  $('wout').textContent=await ask(`Search the web about "${topic}" and summarize supplementary material, practical examples and reliable sources. List the sources at the end.`,{search:true});
+  const {text,imgs}=await pages();
+  const topic=$('wtopic').value.trim();
+  const focus=topic?` Focus on this topic: "${topic}".`:'';
+  $('wout').textContent=await ask(`Lesson content:\n${text||'(in the attached images)'}\n\nSummarize this content for a student: first the main idea in one or two sentences, then the key points as a short list, then the important terms or formulas with brief meanings. Use plain text only: no markdown symbols such as # or **.${focus}`,{imgs});
 });
 
 $('pgo').onclick=e=>run(e.target,()=>genQuiz($('ptype').value,$('pn').value,`Goal: reinforcement practice. ${$('ptopic').value?'Focus on this problem or topic: '+$('ptopic').value+'.':''} Vary the questions and go from easy to hard.`,$('pout')));
@@ -378,7 +391,8 @@ $('ago').onclick=e=>run(e.target,async()=>{
   const {text,imgs}=await pages();
   const mode=$('amode').value,topic=$('atopic').value.trim();
   const goal={page:'this page',chapter:'this chapter',problem:'this problem: '+topic}[mode];
-  const script=await ask(`Lesson content:\n${text||'(in the attached images)'}\n\nTeach ${goal} step by step in simple words, like a patient teacher. The text will be read aloud: no bullet points, no asterisks or symbols, short sentences, and one example. End with two review questions.`,{imgs});
+  const mins=+$('adur').value||2;
+  const script=await ask(`Lesson content:\n${text||'(in the attached images)'}\n\nTeach ${goal} step by step in simple words, like a patient teacher. The text will be read aloud: no bullet points, no asterisks or symbols, short sentences, and one example. The lesson should take about ${mins} minutes when read aloud, which is about ${mins*130} words. End with two review questions.`,{imgs});
   $('aout').textContent=script;
   if(S.lang==='fa'){
     playPersian(script,myId).catch(err=>{if(myId===playId)$('avoice').textContent=err.message});
@@ -394,7 +408,7 @@ $('apause').onclick=()=>{
 $('astop').onclick=()=>{stopAll();$('avoice').textContent=''};
 if(window.speechSynthesis)speechSynthesis.onvoiceschanged=voice;
 
-function exportPdf(id){
+function exportPdf(id,withKey){
   const tk={qout:'tq',wout:'tw',pout:'tp',aout:'ta'}[id];
   const pa=$('printArea');pa.innerHTML='';
   const h=document.createElement('h2');h.textContent=t('title')+' — '+t(tk);pa.append(h);
@@ -407,12 +421,14 @@ function exportPdf(id){
       else{const ln=document.createElement('div');ln.className='ln';d.append(ln)}
       pa.append(d);
     });
-    const k=document.createElement('h3');k.textContent=t('pdfKey');pa.append(k);
-    L.items.forEach((it,i)=>{
-      let a=String(it.answer);
-      if(L.type==='mcq'){const o=(it.options||[])[parseInt(a)-1];if(o)a=parseInt(a)+') '+o}
-      const p=document.createElement('div');p.textContent=(i+1)+'. '+a+(it.explain?' — '+it.explain:'');pa.append(p);
-    });
+    if(withKey){
+      const k=document.createElement('h3');k.textContent=t('pdfKey');pa.append(k);
+      L.items.forEach((it,i)=>{
+        let a=String(it.answer);
+        if(L.type==='mcq'){const o=(it.options||[])[parseInt(a)-1];if(o)a=parseInt(a)+') '+o}
+        const p=document.createElement('div');p.textContent=(i+1)+'. '+a+(it.explain?' — '+it.explain:'');pa.append(p);
+      });
+    }
   }else{
     const txt=$(id).textContent.trim();if(!txt){alert(t('pdfNone'));return}
     const p=document.createElement('div');p.className='out';p.textContent=txt;pa.append(p);
@@ -421,7 +437,7 @@ function exportPdf(id){
   window.print();
 }
 window.onafterprint=()=>{document.title=t('title')};
-document.querySelectorAll('[data-pdf]').forEach(b=>b.onclick=()=>exportPdf(b.dataset.pdf));
+document.querySelectorAll('[data-pdf]').forEach(b=>b.onclick=()=>exportPdf(b.dataset.pdf,b.dataset.key!=='0'));
 </script>
 </body>
 </html>
